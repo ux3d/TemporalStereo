@@ -39,6 +39,10 @@ import torchvision.transforms.functional as transF
 from architecture.utils.visualization import colormap, disp_err_to_color, disp_err_to_colorbar, disp_to_color
 from architecture.data.utils.load_tartanair import read_tartanair_extrinsic
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
+
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
     '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
@@ -94,7 +98,7 @@ def read_extrinsic(extrinsic_fn, inverse=True, use_gt=False):
                     }
                 data['Frame{}:{}'.format(frame, camera)] = item
                 lineid += 1
-
+    print(data)
     return data
 
 def read_image(image_fn, resize_to_shape=None):
@@ -201,7 +205,7 @@ def visualize(outputs, image_name, log_dir):
         cat_disp = np.concatenate((disp_est, disp_gt), axis=0)
         cat_disp_color = disp_to_color(cat_disp).clip(0, 1)
         error_map = colormap(disp_err_to_color, disp_est, disp_gt, normalize=False).clip(0, 1)
-        error_map_with_bar = colormap(disp_err_to_colorbar, disp_est, disp_gt, normalize=False, with_bar=True, cmap='jet').clip(0, 1)
+        error_map_with_bar = colormap(disp_err_to_colorbar, disp_est, disp_gt, normalize=False, with_bar=True, cmap='viridis').clip(0, 1)
         cats = np.concatenate((left_image, right_image, cat_disp_color, error_map, error_map_with_bar), axis=0)
     else:
         cat_disp = disp_est.copy()
@@ -241,8 +245,8 @@ def inference_stereo(
     imgLists = [img for img in imgLists if is_image_file(img)]
     imgLists.sort()
     extrinsic_path = os.path.join(data_root, 'pose_left.txt')
-    extrinsics = read_extrinsic(extrinsic_path, inverse=False, use_gt=True)
-    norm_K, baseline = read_intrinsics(device_type='tartanair')
+    extrinsics = read_extrinsic(extrinsic_path, inverse=False)
+    norm_K, baseline = read_intrinsics(device_type='kitti')
     kh, kw = resize_to_shape
     scale_K = np.eye(4)
     scale_K[0, :] = norm_K[0, :] * kw
@@ -262,14 +266,18 @@ def inference_stereo(
         left_image, left_image_proc = read_image(os.path.join(data_root, 'left', img_name), resize_to_shape)
         right_image, right_image_proc = read_image(os.path.join(data_root, 'right', img_name), resize_to_shape)
 
-        left_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id)]['T_cam02'])
-        left_inv_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id)]['inv_T_cam02'])
+        #left_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id)]['T_cam02'])
+        #left_inv_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id)]['inv_T_cam02'])
+        left_T = torch.from_numpy(np.identity(4))
+        left_inv_T = torch.from_numpy(np.identity(4))
         if img_id == 0:
             last_left_T = left_T
             last_left_inv_T = left_inv_T
         else:
-            last_left_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id-1)]['T_cam02'])
-            last_left_inv_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id-1)]['inv_T_cam02'])
+            #last_left_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id-1)]['T_cam02'])
+            #last_left_inv_T = torch.from_numpy(extrinsics['Frame{:02d}:02'.format(img_id-1)]['inv_T_cam02'])
+            last_left_T = torch.from_numpy(np.identity(4))
+            last_left_inv_T = torch.from_numpy(np.identity(4))
 
         batch = {
             ('color', 0, 'l'): left_image,

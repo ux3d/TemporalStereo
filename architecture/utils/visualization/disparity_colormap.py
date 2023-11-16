@@ -177,7 +177,7 @@ def revalue(map, lower, upper, start, scale):
 
     return map
 
-def disp_err_to_colorbar(est, gt, with_bar=False, cmap='jet'):
+def disp_err_to_colorbar(est, gt, with_bar=False, cmap='viridis'):
     error_bar_height = 50
     valid = gt > 0
     error_map = np.abs(est - gt) * valid
